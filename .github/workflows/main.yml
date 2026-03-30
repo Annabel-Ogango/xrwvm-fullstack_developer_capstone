@@ -27,8 +27,8 @@ jobs:
 
     - name: Run Linter
       run: |
-        # Added --exclude=migrations to ignore auto-generated Django files
-        # Added --max-line-length=120 to be a bit more flexible with modern screens
+        # --exclude=migrations ignores auto-generated Django files
+        # --max-line-length=120 handles modern wide-screen code formatting
         flake8 ./server --exclude=migrations --max-line-length=120 --count --statistics
         echo "Linted all the python files successfully"
 
@@ -50,6 +50,6 @@ jobs:
 
     - name: Run Linter
       run: |
-        # Targets your database JS files as specified in the task
+        # Targets the database JS files as specified in your project task
         find ./server/database -name "*.js" -exec jshint {} +
         echo "Linted all the js files successfully"
