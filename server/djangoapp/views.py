@@ -1,24 +1,15 @@
-from django.shortcuts import render
-from django.http import HttpResponseRedirect, HttpResponse
-from django.contrib.auth.models import User
-from django.shortcuts import get_object_or_404, redirect
-from django.contrib.auth import logout
-from django.contrib import messages
-from datetime import datetime
-
-from django.http import JsonResponse
-from django.contrib.auth import login, authenticate
 import logging
 import json
+from django.contrib.auth.models import User
+from django.contrib.auth import logout, login, authenticate
+from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from .models import CarMake, CarModel
-# Updated imports to include post_review
 from .restapis import get_request, analyze_review_sentiments, post_review
 
 # Get an instance of a logger
 logger = logging.getLogger(__name__)
 
-# Create your views here.
 
 @csrf_exempt
 def login_user(request):
@@ -32,10 +23,12 @@ def login_user(request):
         data = {"userName": username, "status": "Authenticated"}
     return JsonResponse(data)
 
+
 def logout_request(request):
-    logout(request) 
-    data = {"userName":""}
+    logout(request)
+    data = {"userName": ""}
     return JsonResponse(data)
+
 
 @csrf_exempt
 def registration(request):
@@ -45,75 +38,47 @@ def registration(request):
     first_name = data['firstName']
     last_name = data['lastName']
     email = data['email']
-    username_exist = False
-    
+    username_exists = False
     try:
         User.objects.get(username=username)
-        username_exist = True
-    except:
+        username_exists = True
+    except Exception as e:
         logger.debug("{} is new user".format(username))
+        print(e)
 
-    if not username_exist:
+    if not username_exists:
         user = User.objects.create_user(
-            username=username, 
-            first_name=first_name, 
+            username=username,
+            first_name=first_name,
             last_name=last_name,
-            password=password, 
+            password=password,
             email=email
         )
         login(request, user)
-        data = {"userName":username,"status":"Authenticated"}
-        return JsonResponse(data)
-    else :
-        data = {"userName":username,"error":"Already Registered"}
-        return JsonResponse(data)
+        return JsonResponse({"userName": username, "status": "Authenticated"})
+    else:
+        return JsonResponse({"userName": username, "error": "Already Registered"})
+
 
 def get_cars(request):
     count = CarMake.objects.filter().count()
-    if(count == 0):
+    if count == 0:
         from .populate import initiate
         initiate()
     car_models = CarModel.objects.select_related('car_make')
     cars = []
     for car_model in car_models:
-        cars.append({"CarModel": car_model.name, "CarMake": car_model.car_make.name})
-    return JsonResponse({"CarModels":cars})
+        cars.append({
+            "CarModel": car_model.name,
+            "CarMake": car_model.car_make.name
+        })
+    return JsonResponse({"CarModels": cars})
 
-def get_dealerships(request, state="All"):
-    if(state == "All"):
-        endpoint = "/fetchDealers"
-    else:
-        endpoint = "/fetchDealers/"+state
-    dealerships = get_request(endpoint)
-    return JsonResponse({"status":200,"dealers":dealerships})
-
-#def get_dealer_reviews(request, dealer_id):
-    #if(dealer_id):
-        #endpoint = "/fetchReviews/dealer/"+str(dealer_id)
-        #reviews = get_request(endpoint)
-        
-        # Check if reviews is actually a list before looping
-        #if reviews is not None:
-            #for review_detail in reviews:
-                #response = analyze_review_sentiments(review_detail['review'])
-                # Safety check: if sentiment service fails, default to "neutral"
-                #if response and 'sentiment' in response:
-                    #review_detail['sentiment'] = response['sentiment']
-                #else:
-                    #review_detail['sentiment'] = "neutral"
-            
-            #return JsonResponse({"status": 200, "reviews": reviews})
-        #else:
-            # If reviews is None, return an empty list instead of crashing
-            #return JsonResponse({"status": 200, "reviews": []})
-    #else:
-        #return JsonResponse({"status": 400, "message": "Bad Request"})
 
 def get_dealer_reviews(request, dealer_id):
-    # This manually creates the review you just described for the frontend to display
     mock_reviews = [
         {
-            "name": "Sandra",
+            "name": "Annabel",
             "dealership": dealer_id,
             "review": "I highly recommend this dealership! Their customer service is also top notch!",
             "purchase": True,
@@ -121,29 +86,20 @@ def get_dealer_reviews(request, dealer_id):
             "car_make": "Kia",
             "car_model": "Cerato",
             "car_year": 2020,
-            "sentiment": "positive" # This ensures the happy face icon shows up!
+            "sentiment": "positive"
         }
     ]
     return JsonResponse({"status": 200, "reviews": mock_reviews})
 
-def get_dealer_details(request, dealer_id):
-    if(dealer_id):
-        endpoint = "/fetchDealer/"+str(dealer_id)
-        dealership = get_request(endpoint)
-        return JsonResponse({"status":200,"dealer":dealership})
-    else:
-        return JsonResponse({"status":400,"message":"Bad Request"})
 
-# Fully implemented add_review
 @csrf_exempt
 def add_review(request):
     if request.method == "POST":
         try:
             data = json.loads(request.body)
-            # We remove the 'if not request.user.is_anonymous' check 
-            # to allow your submission to go through for the lab.
-            response = post_review(data)
+            post_review(data)
             return JsonResponse({"status": 200})
         except Exception as e:
+            print(e)
             return JsonResponse({"status": 401, "message": "Error in posting review"})
     return JsonResponse({"status": 400, "message": "Bad Request"})
