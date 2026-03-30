@@ -5,7 +5,8 @@ from django.contrib.auth import logout, login, authenticate
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from .models import CarMake, CarModel
-from .restapis import get_request, analyze_review_sentiments, post_review
+#from .restapis import get_request, analyze_review_sentiments, post_review
+from .restapis import post_review
 
 # Get an instance of a logger
 logger = logging.getLogger(__name__)
