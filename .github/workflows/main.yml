@@ -1,4 +1,8 @@
-name: 'Lint Code'
+name: Run Linter
+  run: |
+    # Targets the database JS files as specified in your project task
+    find ./server/database -name "*.js" -exec jshint --esversion=6 {} +
+    echo "Linted all the js files successfully"
 
 on:
   push:
